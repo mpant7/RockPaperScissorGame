@@ -1,0 +1,24 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+
+<h2>RESULT PAGE</h2>
+
+    <table border="2">
+        <tr>
+            <td>Your Pick: {{ userPick }}</td>
+            <td>Computer's Pick: {{ computerPick }}</td>
+        </tr>
+        <tr>
+            <td colspan="2">Result: {{ gameResult }}</td>
+        </tr>
+    </table>
+
+    <p>New Score: {{ newScore }}</p>
+
+    <form action="{{ path('app_game_playpage') }}" method="post">
+        <button type="submit" value="{{ gameId }}" name="gameSelected">Try Again</button>
+    </form>
+    <button onclick="location.href='/'" >Home Page</button>
+
+{% endblock %}

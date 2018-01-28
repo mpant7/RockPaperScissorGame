@@ -1,0 +1,25 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+
+<h2>RPS GAME LEADERBOARD</h2>
+    <p>Result : </p>
+    <table border="2" align="center">
+        <tr> <th>Name</th> <th>Score</th> <th>Last Played</th> </tr>
+
+        {% for playerData in gameList %}
+            <tr>
+                {% for data in playerData %}
+                    <td>{{ data }}</td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+    </table>
+
+    <button onclick="location.href='/watch-page'">Refresh</button>
+    <button onclick="location.href='/'" >Home Page</button>
+{% endblock %}
+
+
+
+

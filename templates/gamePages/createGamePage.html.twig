@@ -1,0 +1,12 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+
+<h2>Create new game</h2>
+
+<form action="{{ path('app_game_playpage') }}" method="post">
+    <label>Welcome {{ gameName }}</label>
+    <button name="gameSelected" value={{ gameId }}>Play</button>
+</form>
+
+{% endblock %}

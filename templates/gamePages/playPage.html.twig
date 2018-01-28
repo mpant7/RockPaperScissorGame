@@ -1,0 +1,21 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+
+<h2>PLAY PAGE</h2>
+    <label>Welcome {{ gameName }}, Pick One: </label>
+
+    <form action="{{ path('app_game_resultpage', {'slug': 'ROCK'}) }}" method="post">
+        {#<button onclick="location.href='/result-page/ROCK/{{ gameId }}'" value="ROCK">ROCK</button>#}
+        <button type="submit" value="{{ gameId }}" name="gameSelected">ROCK</button>
+    </form>
+    <form action="{{ path('app_game_resultpage', {'slug': 'PAPER'}) }}" method="post">
+        <button type="submit" value="{{ gameId }}" name="gameSelected">PAPER</button>
+    </form>
+    <form action="{{ path('app_game_resultpage', {'slug': 'SCISSOR'}) }}" method="post">
+        <button type="submit" value="{{ gameId }}" name="gameSelected">SCISSOR</button>
+    </form>
+
+    <p>Your Current Score : {{ currentScore }} </p>
+
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+
+<h2>ROCK-PAPER-SCISSOR</h2>
+
+    <table align="center">
+
+        <tr>
+            <td>Create a new game</td>
+            <td>
+                <form action="{{ path('app_game_creategamepage') }}" method="post">
+                    <input type="text" placeholder="Enter the unique name" name="game-name"> <button type="submit">Create</button>
+                </form>
+            </td>
+
+        </tr>
+
+        <tr> <td colspan="3" >OR</td></tr>
+
+        <tr>
+            <td>Choose your game</td>
+            <td>
+                <form action="{{ path('app_game_playpage') }}" method="post">
+                    <select id="gameSelected" name="gameSelected">
+                        {% for key,value in gameList %}
+                            <option value="{{ key }}">{{ value }}</option>
+                        {% endfor %}
+
+                    </select>
+
+                    <button type="submit" >Play</button>
+                    {#<input name="Play" type="submit" >#}
+                </form>
+                {#<button type="submit" onclick="location.href='/play-page'">Play</button>#}
+            </td>
+        </tr>
+
+        <tr> <td colspan="3">OR</td></tr>
+
+        <tr>
+            <td>Watch Results</td>
+            <td><button onclick="location.href='/watch-page'">Watch</button></td>
+        </tr>
+
+    </table>
+{% endblock %}
