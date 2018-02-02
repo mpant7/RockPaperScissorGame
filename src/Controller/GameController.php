@@ -20,8 +20,9 @@ class GameController extends AbstractController
     /**
      * @Route("/")
      */
-    public function defaultPage(EntityManagerInterface $em){
+    public function defaultPage($errorMessage=""){
         $gameList = array();
+        $em = $this->getDoctrine()->getManager();
         $games = $em -> getRepository(Games::class) -> findAll();
         foreach ($games as $elem) {
             $gameList[$elem ->getId()] = $elem ->getName();
@@ -29,6 +30,7 @@ class GameController extends AbstractController
 
         return $this->render('gamePages/defaultPage.html.twig', [
             'gameList' => $gameList,
+            'errorMessage' => $errorMessage,
         ]);
     }
 
@@ -37,17 +39,29 @@ class GameController extends AbstractController
      */
     public function createGamePage(Request $request, EntityManagerInterface $em){
         $gameName = $request->request->get('game-name');
-        $game = new Games();
-        $game->setName($gameName);
-        $game->setScore(0);
-        $game->setTime(new \DateTime('Asia/Kolkata'));
-        $em->persist($game);
-        $em->flush();
+        if ($gameName == null){
+            return $this->defaultPage('Please enter the name');
+        }
+        $existingGame = $em->getRepository(Games::class)->findBy(['name' => $gameName]);
+        if($existingGame){
+            return $this->defaultPage('This name already exists. Enter a unique name');
+        }
+
+        try {
+            $game = new Games();
+            $game->setName($gameName);
+            $game->setScore(0);
+            $game->setTime(new \DateTime('Asia/Kolkata'));
+            $em->persist($game);
+            $em->flush();
+        }catch (\PDOException $exception){
+           return $this->defaultPage('Sorry! Game could not be created. Try again');
+        }
 
         $selectedId = $game->getId();
         return $this->render('gamePages/createGamePage.html.twig', [
             'gameId' => $selectedId,
-            'gameName' => $gameName
+            'gameName' => $gameName,
         ]);
     }
 
@@ -57,11 +71,20 @@ class GameController extends AbstractController
      */
     public function playPage(Request $request, EntityManagerInterface $em) {
         $selectedID = $request->request->get('gameSelected');
-        $game = $em -> getRepository(Games::class) -> find($selectedID);
+        if($selectedID==null){
+            return $this->defaultPage("Start your game from here");
+        }
+        try{
+            $game = $em -> getRepository(Games::class) -> find($selectedID);
+            $gameName = $game->getName();
+            $gameScore = $game->getScore();
+        } catch (\Exception $exception){
+            return $this->defaultPage('Sorry! Some error in fetching your game. Try again.');
+        }
         return $this->render('gamePages/playPage.html.twig', [
-            'gameId' => $game->getId(),
-            'gameName' => $game->getName(),
-            'currentScore' => $game->getScore(),
+            'gameId' => $selectedID,
+            'gameName' => $gameName,
+            'currentScore' => $gameScore,
         ]);
     }
 
@@ -70,36 +93,21 @@ class GameController extends AbstractController
      */
     public function resultPage($slug, Request $request, EntityManagerInterface $em) {
         $selectedId = $request->request->get('gameSelected');
-        $game = $em -> getRepository(Games::class) -> find($selectedId);
-        $currentScore = $game->getScore();
+        if($selectedId==null){
+            return $this->defaultPage("Start your game from here");
+        }
+        try{
+            $game = $em -> getRepository(Games::class) -> find($selectedId);
+            $currentScore = $game->getScore();
+        } catch (\Exception $exception){
+            return $this->defaultPage('Sorry! Some error in fetching your game. Try again.');
+        }
 
         // SETTING GAME RESULTS
         $randNum = mt_rand(0,2);
         $choices = array('ROCK','PAPER', 'SCISSOR');
-        $resultOptions = array('WIN', 'LOSE', 'TIE', 'NIL');
-        $gameResult = $resultOptions[3];
-
-        if ( $slug==$choices[$randNum] ){
-            $gameResult = $resultOptions[2];
-        }
-        elseif ($slug=='ROCK' && $choices[$randNum]=='PAPER') {
-            $gameResult = $resultOptions[1];
-        }
-        elseif ($slug=='ROCK' && $choices[$randNum]=='SCISSOR') {
-            $gameResult = $resultOptions[0];
-        }
-        elseif ($slug=='PAPER' && $choices[$randNum]=='SCISSOR') {
-            $gameResult = $resultOptions[1];
-        }
-        elseif ($slug=='PAPER' && $choices[$randNum]=='ROCK') {
-            $gameResult = $resultOptions[0];
-        }
-        elseif ($slug=='SCISSOR' && $choices[$randNum]=='PAPER') {
-            $gameResult = $resultOptions[0];
-        }
-        elseif ($slug=='SCISSOR' && $choices[$randNum]=='ROCK') {
-            $gameResult = $resultOptions[1];
-        }
+        $systemChoice = $choices[$randNum];
+        $gameResult = $this->gameLogic($slug, $systemChoice);
 
         // SETTING GAME SCORES
         $newScore = $currentScore;
@@ -110,15 +118,48 @@ class GameController extends AbstractController
             $newScore--;
         }
         $game -> setScore($newScore);
-        $em -> flush();
+        try{
+            $em -> flush();
+        } catch (\PDOException $exception){
+            return $this->defaultPage('Sorry! Some error in saving your game results. Try again');
+        }
 
         return $this->render('gamePages/resultPage.html.twig', [
             'userPick' => $slug,
-            'computerPick' => $choices[$randNum],
+            'computerPick' => $systemChoice,
             'gameResult' => $gameResult,
             'newScore' => $newScore,
             'gameId' => $selectedId,
         ]);
+    }
+
+    public function gameLogic($userChoice, $systemChoice) {
+        $resultOptions = array('WIN', 'LOSE', 'TIE', 'NIL');
+        $gameResult = $resultOptions[3];
+
+        if ( $userChoice==$systemChoice ){
+            $gameResult = $resultOptions[2];
+        }
+        elseif ($userChoice=='ROCK' && $systemChoice=='PAPER') {
+            $gameResult = $resultOptions[1];
+        }
+        elseif ($userChoice=='ROCK' && $systemChoice=='SCISSOR') {
+            $gameResult = $resultOptions[0];
+        }
+        elseif ($userChoice=='PAPER' && $systemChoice=='SCISSOR') {
+            $gameResult = $resultOptions[1];
+        }
+        elseif ($userChoice=='PAPER' && $systemChoice=='ROCK') {
+            $gameResult = $resultOptions[0];
+        }
+        elseif ($userChoice=='SCISSOR' && $systemChoice=='PAPER') {
+            $gameResult = $resultOptions[0];
+        }
+        elseif ($userChoice=='SCISSOR' && $systemChoice=='ROCK') {
+            $gameResult = $resultOptions[1];
+        }
+
+        return $gameResult;
     }
 
     /**
@@ -127,6 +168,7 @@ class GameController extends AbstractController
     public function watchPage(EntityManagerInterface $em) {
         $games = $em -> getRepository(Games::class) -> findAll();
         $gameList = array();
+
         foreach ($games as $elem) {
             //$gameList[$elem ->getName()] = $elem ->getScore();
             $playerData = [$elem->getName(), $elem->getScore(), $elem->getTime()->format('Y-m-d H:i:s')];
@@ -136,6 +178,13 @@ class GameController extends AbstractController
             'gameList' => $gameList,
         ]);
 
+    }
+
+    /**
+     * @Route("/{token}", name="wrongToken", requirements={"token"=".+"})
+     */
+    public function wrongTokens()    {
+        return $this->defaultPage();
     }
 
 }
